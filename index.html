@@ -608,6 +608,7 @@
     let token = localStorage.getItem('token');
     let username = localStorage.getItem('username');
     let providers = [];
+    let userKeys = {};
     let currentModels = [];
     let chatHistory = [];
 
@@ -781,7 +782,7 @@
       const listEl = document.getElementById('keysList');
       try {
         const data = await api('/keys');
-        const keys = data.keys || {};
+        userKeys = data.keys || {};
         const allKeys = [];
         for (const [provider, providerKeys] of Object.entries(keys)) {
           if (Array.isArray(providerKeys)) {
@@ -832,6 +833,7 @@
       const providerKeys = providers.find(p => p.id === provider);
       if (providerKeys) {
         modelSelect.innerHTML = '<option value="">Select model...</option>';
+        updateKeySelects(userKeys);
       }
       try {
         const data = await api(`/models?provider=${provider}`);
@@ -854,6 +856,7 @@
       if (p) {
         endpointSelect.innerHTML = '<option value="">Select endpoint...</option>' +
           p.endpoints.map(e => `<option value="${e.id}">${e.method} ${e.name}</option>`).join('');
+        updateKeySelects(userKeys);
       }
       document.getElementById('paramsContainer').innerHTML = '';
     }
