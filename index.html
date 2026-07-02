@@ -617,6 +617,10 @@
       document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
       document.getElementById('requestTab').classList.toggle('hidden', tab !== 'request');
       document.getElementById('keysTab').classList.toggle('hidden', tab !== 'keys');
+      if (tab === 'keys') {
+        loadProviders();
+        loadKeys();
+      }
     }
 
     function switchAuthTab(tab) {
