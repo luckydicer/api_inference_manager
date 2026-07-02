@@ -289,6 +289,29 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .message-time { font-size: 11px; opacity: 0.7; margin-top: 4px; }
     .config-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-username {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }
       .main-content { margin-left: 0; }
@@ -321,42 +344,52 @@
     </div>
   </div>
 
-  <div class="main-content">
-    <div id="authSection">
-      <div class="card" style="max-width: 400px; margin: 60px auto;">
-        <h2 style="text-align: center; margin-bottom: 24px;">Welcome</h2>
-        <div class="tabs">
-          <div class="tab active" data-tab="login" onclick="switchAuthTab('login')">Login</div>
-          <div class="tab" data-tab="register" onclick="switchAuthTab('register')">Register</div>
+    <div class="main-content">
+    <div id="mainSection">
+      <div class="header-bar">
+        <div class="header-user">
+          <span class="header-username" id="headerUsername">User</span>
         </div>
-        <div id="loginForm">
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="loginUsername" placeholder="Enter username">
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="loginPassword" placeholder="Enter password">
-          </div>
-          <button onclick="login()" style="width: 100%;">Login</button>
-          <div id="loginError" class="error"></div>
-        </div>
-        <div id="registerForm" class="hidden">
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="registerUsername" placeholder="Choose username">
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="registerPassword" placeholder="Choose password (min 6 chars)">
-          </div>
-          <button onclick="register()" style="width: 100%;">Register</button>
-          <div id="registerError" class="error"></div>
+        <div class="header-actions">
+          <button class="btn-small btn-secondary" onclick="showProfile()">Profile</button>
+          <button class="btn-small btn-danger" onclick="logout()">Logout</button>
         </div>
       </div>
-    </div>
 
-    <div id="mainSection" class="hidden">
+      <div id="authSection">
+        <div class="card" style="max-width: 400px; margin: 60px auto;">
+          <h2 style="text-align: center; margin-bottom: 24px;">Welcome</h2>
+          <div class="tabs">
+            <div class="tab active" data-tab="login" onclick="switchAuthTab('login')">Login</div>
+            <div class="tab" data-tab="register" onclick="switchAuthTab('register')">Register</div>
+          </div>
+          <div id="loginForm">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="loginUsername" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="loginPassword" placeholder="Enter password">
+            </div>
+            <button onclick="login()" style="width: 100%;">Login</button>
+            <div id="loginError" class="error"></div>
+          </div>
+          <div id="registerForm" class="hidden">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="registerUsername" placeholder="Choose username">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="registerPassword" placeholder="Choose password (min 6 chars)">
+            </div>
+            <button onclick="register()" style="width: 100%;">Register</button>
+            <div id="registerError" class="error"></div>
+          </div>
+        </div>
+      </div>
+
       <div id="chatTab">
         <div class="card">
           <div class="card-header">
@@ -487,7 +520,6 @@
           <h3 class="card-title" style="margin-bottom: 20px;">Your API Keys</h3>
           <div id="keysList"></div>
         </div>
-        <button onclick="logout()" class="btn-danger" style="width: 100%;">Logout</button>
       </div>
     </div>
   </div>
@@ -542,8 +574,13 @@
     function showMain() {
       document.getElementById('authSection').classList.add('hidden');
       document.getElementById('mainSection').classList.remove('hidden');
+      document.getElementById('headerUsername').textContent = username || 'User';
       loadProviders();
       loadKeys();
+    }
+
+    function showProfile() {
+      alert('Profile settings coming soon');
     }
 
     async function login() {
