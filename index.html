@@ -352,6 +352,34 @@
       padding: 8px 14px 4px;
       text-transform: uppercase;
     }
+
+    .request-response-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+    @media (max-width: 1024px) {
+      .request-response-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .request-card, .response-card {
+      display: flex;
+      flex-direction: column;
+    }
+    .request-card .card-title,
+    .response-card .output-header {
+      flex-shrink: 0;
+    }
+    #requestFields {
+      flex: 1;
+      overflow-y: auto;
+    }
+    #responseBox {
+      flex: 1;
+      min-height: 0;
+    }
   </style>
 </head>
 <body>
@@ -396,21 +424,23 @@
         </div>
       </div>
 
-      <div class="request-card">
-        <div class="card-title">Request</div>
-        <div id="requestFields"></div>
-        <div class="btn-row">
-          <button id="sendBtn" onclick="sendRequest()">Send Request</button>
-          <button class="btn-secondary" onclick="clearResponse()">Clear</button>
+      <div class="request-response-container">
+        <div class="request-card">
+          <div class="card-title">Request</div>
+          <div id="requestFields"></div>
+          <div class="btn-row">
+            <button id="sendBtn" onclick="sendRequest()">Send Request</button>
+            <button class="btn-secondary" onclick="clearResponse()">Clear</button>
+          </div>
         </div>
-      </div>
 
-      <div class="response-card">
-        <div class="output-header">
-          <div class="card-title" style="margin-bottom: 0;">Response</div>
-          <span id="outputStatus" class="output-status">Ready</span>
+        <div class="response-card">
+          <div class="output-header">
+            <div class="card-title" style="margin-bottom: 0;">Response</div>
+            <span id="outputStatus" class="output-status">Ready</span>
+          </div>
+          <div id="responseBox" class="output-box"><pre style="color: var(--text-muted);">Response will appear here...</pre></div>
         </div>
-        <div id="responseBox" class="output-box"><pre style="color: var(--text-muted);">Response will appear here...</pre></div>
       </div>
     </div>
   </div>
@@ -431,7 +461,7 @@
           description: 'Generate chat completions for a given conversational context.',
           fields: [
             { name: 'model', type: 'model', required: true, hint: 'Select a model' },
-            { name: 'messages', type: 'json', required: true, hint: 'Array of message objects with role and content' },
+            { name: 'messages', type: 'json', required: true, hint: 'JSON array or plain text (will be wrapped)' },
             { name: 'temperature', type: 'number', default: 0.7, hint: 'Sampling temperature (0-2)' },
             { name: 'max_tokens', type: 'number', default: 2048, hint: 'Maximum tokens to generate' },
             { name: 'top_p', type: 'number', hint: 'Nucleus sampling threshold' },
@@ -513,7 +543,7 @@
           description: 'Generate chat completions.',
           fields: [
             { name: 'model_id', type: 'model', required: true, hint: 'Select a model' },
-            { name: 'messages', type: 'json', required: true, hint: 'Array of message objects' },
+            { name: 'messages', type: 'json', required: true, hint: 'JSON array or plain text (will be wrapped)' },
             { name: 'temperature', type: 'number', default: 0.7, hint: 'Sampling temperature' },
             { name: 'max_tokens', type: 'number', default: 2048, hint: 'Maximum tokens' },
             { name: 'stream', type: 'boolean', default: false }
@@ -823,7 +853,7 @@
         if (field.type === 'json') {
           html += `<div class="field-group" style="grid-column: 1 / -1;">
             <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
-            <textarea id="field_${field.name}" placeholder='[{"role": "user", "content": "Hello"}]'>${value}</textarea>
+            <textarea id="field_${field.name}" placeholder='[{"role": "user", "content": "Hello"}] or just type your message'>${value}</textarea>
             ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
           </div>`;
         } else if (field.type === 'boolean') {
@@ -883,12 +913,13 @@
         if (!el) continue;
 
         if (field.type === 'json') {
-          try {
-            const val = el.value.trim();
-            if (val) body[field.name] = JSON.parse(val);
-          } catch (e) {
-            alert(`Invalid JSON in ${field.name}: ${e.message}`);
-            return null;
+          const val = el.value.trim();
+          if (val) {
+            try {
+              body[field.name] = JSON.parse(val);
+            } catch {
+              body[field.name] = [{ role: 'user', content: val }];
+            }
           }
         } else if (field.type === 'boolean') {
           body[field.name] = el.checked;
