@@ -1102,6 +1102,20 @@
       document.getElementById('apiKeyInput').placeholder = prov === 'chutes' ? 'cpk_...' : 'sk-or-v1...';
     }
 
+    function resetSubmitButton() {
+      const btn = document.getElementById('submitBtn');
+      if (!btn) return;
+      btn.disabled = false;
+      btn.textContent = 'Continue';
+    }
+
+    function setSubmitLoading(isLoading) {
+      const btn = document.getElementById('submitBtn');
+      if (!btn) return;
+      btn.disabled = isLoading;
+      btn.innerHTML = isLoading ? '<span class="loading"></span>' : 'Continue';
+    }
+
     function logout() {
       sessionStorage.removeItem('apiKey');
       sessionStorage.removeItem('provider');
@@ -1114,13 +1128,16 @@
       document.getElementById('apiKeyModal').style.display = 'flex';
       document.getElementById('apiKeyInput').value = '';
       document.getElementById('modalError').classList.add('hidden');
+      resetSubmitButton();
     }
 
     async function submitApiKey() {
+      const btn = document.getElementById('submitBtn');
+      if (btn?.disabled) return;
+
       const key = document.getElementById('apiKeyInput').value.trim();
       const prov = document.getElementById('providerSelect').value;
       const errorEl = document.getElementById('modalError');
-      const btn = document.getElementById('submitBtn');
 
       if (!key) {
         errorEl.textContent = 'Please enter an API key';
@@ -1131,8 +1148,7 @@
       apiKey = key;
       provider = prov;
       errorEl.classList.add('hidden');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="loading"></span>';
+      setSubmitLoading(true);
 
       try {
         await testConnection();
@@ -1149,8 +1165,7 @@
       } catch (err) {
         errorEl.textContent = 'Failed to connect. Check your API key.';
         errorEl.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = 'Continue';
+        resetSubmitButton();
       }
     }
 
