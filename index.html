@@ -297,6 +297,61 @@
       font-size: 13px;
       min-height: 200px;
     }
+
+    .model-select-wrapper {
+      position: relative;
+    }
+    .model-select-input {
+      cursor: pointer;
+      background: var(--bg-tertiary) !important;
+    }
+    .model-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 100;
+      margin-top: 4px;
+      display: none;
+    }
+    .model-select-dropdown.open { display: block; }
+    .model-select-search {
+      position: sticky;
+      top: 0;
+      background: var(--bg-tertiary);
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .model-select-search input {
+      border-radius: 6px;
+    }
+    .model-option {
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .model-option:hover { background: var(--bg-tertiary); }
+    .model-option.selected { background: var(--accent); color: white; }
+    .model-option-name { font-size: 13px; font-weight: 500; }
+    .model-option-price { font-size: 11px; color: var(--text-muted); }
+    .model-option.selected .model-option-price { color: rgba(255,255,255,0.7); }
+    .model-option-id { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .model-option.selected .model-option-id { color: rgba(255,255,255,0.7); }
+    .model-option-group {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 8px 14px 4px;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
@@ -375,7 +430,7 @@
           path: '/chat/completions',
           description: 'Generate chat completions for a given conversational context.',
           fields: [
-            { name: 'model', type: 'text', required: true, hint: 'Model ID (e.g., anthropic/claude-3-5-sonnet)' },
+            { name: 'model', type: 'model', required: true, hint: 'Select a model' },
             { name: 'messages', type: 'json', required: true, hint: 'Array of message objects with role and content' },
             { name: 'temperature', type: 'number', default: 0.7, hint: 'Sampling temperature (0-2)' },
             { name: 'max_tokens', type: 'number', default: 2048, hint: 'Maximum tokens to generate' },
@@ -457,7 +512,7 @@
           path: '/chat/completions',
           description: 'Generate chat completions.',
           fields: [
-            { name: 'model_id', type: 'text', required: true, hint: 'Model ID' },
+            { name: 'model_id', type: 'model', required: true, hint: 'Select a model' },
             { name: 'messages', type: 'json', required: true, hint: 'Array of message objects' },
             { name: 'temperature', type: 'number', default: 0.7, hint: 'Sampling temperature' },
             { name: 'max_tokens', type: 'number', default: 2048, hint: 'Maximum tokens' },
@@ -489,7 +544,7 @@
           path: '/image/generation',
           description: 'Generate images from text prompts.',
           fields: [
-            { name: 'model_id', type: 'text', required: true, hint: 'Image model ID' },
+            { name: 'model_id', type: 'model', required: true, hint: 'Select an image model' },
             { name: 'prompt', type: 'text', required: true, hint: 'Text description of desired image' },
             { name: 'num_images', type: 'number', default: 1, hint: 'Number of images to generate' },
             { name: 'aspect_ratio', type: 'text', hint: 'Aspect ratio (e.g., 1:1, 16:9)' },
@@ -513,6 +568,129 @@
     let apiKey = '';
     let provider = '';
     let currentEndpoint = null;
+    let models = [];
+
+    async function fetchModels() {
+      const baseUrl = API_URLS[provider];
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (!response.ok) throw new Error('Failed to fetch models');
+      const data = await response.json();
+      models = data.data || [];
+      if (provider === 'openrouter') {
+        models.sort((a, b) => {
+          const aTop = a.id.includes('claude') || a.id.includes('gpt') || a.id.includes('sonnet');
+          const bTop = b.id.includes('claude') || b.id.includes('gpt') || b.id.includes('sonnet');
+          if (aTop && !bTop) return -1;
+          if (!aTop && bTop) return 1;
+          return 0;
+        });
+      }
+    }
+
+    function getModelPrice(model) {
+      if (provider === 'openrouter') {
+        const pricing = model.pricing || {};
+        const prompt = pricing.prompt || 0;
+        const completion = pricing.completion || 0;
+        if (prompt === 0 && completion === 0) return 'Free';
+        if (prompt === completion) return `$${(prompt * 1000000).toFixed(2)}/1M`;
+        return `in: $${(prompt * 1000000).toFixed(2)} out: $${(completion * 1000000).toFixed(2)}`;
+      } else {
+        return model.pricing ? `$${model.pricing.toFixed(4)}/1M` : 'N/A';
+      }
+    }
+
+    function toggleModelDropdown(fieldName) {
+      const dropdown = document.getElementById(`dropdown_${fieldName}`);
+      document.querySelectorAll('.model-select-dropdown').forEach(d => {
+        if (d.id !== `dropdown_${fieldName}`) d.classList.remove('open');
+      });
+      dropdown.classList.toggle('open');
+      if (dropdown.classList.contains('open')) {
+        const searchInput = dropdown.querySelector('input');
+        if (searchInput) searchInput.focus();
+      }
+    }
+
+    function filterModels(fieldName, query) {
+      renderModelDropdown(fieldName, query);
+    }
+
+    function selectModel(fieldName, modelId) {
+      const model = models.find(m => m.id === modelId);
+      if (!model) return;
+      document.getElementById(`selected_${fieldName}`).value = modelId;
+      document.getElementById(`input_${fieldName}`).value = model.name || modelId;
+      document.getElementById(`price_${fieldName}`).textContent = getModelPrice(model);
+      toggleModelDropdown(fieldName);
+    }
+
+    function renderModelDropdown(fieldName, filter = '') {
+      const dropdown = document.getElementById(`dropdown_${fieldName}`);
+      const filtered = models.filter(m => {
+        const name = (m.name || m.id || '').toLowerCase();
+        const id = (m.id || '').toLowerCase();
+        const q = filter.toLowerCase();
+        return !q || name.includes(q) || id.includes(q);
+      });
+
+      const selectedId = document.getElementById(`selected_${fieldName}`)?.value || '';
+
+      let html = `<div class="model-select-search">
+        <input type="text" placeholder="Search models..." onkeyup="filterModels('${fieldName}', this.value)" autofocus>
+      </div>`;
+
+      if (filtered.length === 0) {
+        html += `<div class="model-option" style="color: var(--text-muted); cursor: default;">No models found</div>`;
+      } else {
+        const top = filtered.filter(m => m.id.includes('claude') || m.id.includes('gpt') || m.id.includes('sonnet'));
+        const rest = filtered.filter(m => !m.id.includes('claude') && !m.id.includes('gpt') && !m.id.includes('sonnet'));
+
+        if (top.length > 0) {
+          html += `<div class="model-option-group">Popular</div>`;
+          top.slice(0, 10).forEach(m => {
+            const price = getModelPrice(m);
+            const isSelected = m.id === selectedId;
+            html += `<div class="model-option ${isSelected ? 'selected' : ''}" onclick="selectModel('${fieldName}', '${m.id.replace(/'/g, "\\'")}')">
+              <div>
+                <div class="model-option-name">${m.name || m.id}</div>
+                <div class="model-option-id">${m.id}</div>
+              </div>
+              <div class="model-option-price">${price}</div>
+            </div>`;
+          });
+        }
+
+        if (rest.length > 0) {
+          html += `<div class="model-option-group">Other Models</div>`;
+          rest.slice(0, 90).forEach(m => {
+            const price = getModelPrice(m);
+            const isSelected = m.id === selectedId;
+            html += `<div class="model-option ${isSelected ? 'selected' : ''}" onclick="selectModel('${fieldName}', '${m.id.replace(/'/g, "\\'")}')">
+              <div>
+                <div class="model-option-name">${m.name || m.id}</div>
+                <div class="model-option-id">${m.id}</div>
+              </div>
+              <div class="model-option-price">${price}</div>
+            </div>`;
+          });
+        }
+
+        if (filtered.length > 100) {
+          html += `<div class="model-option" style="color: var(--text-muted);">Showing 100 of ${filtered.length}</div>`;
+        }
+      }
+
+      dropdown.innerHTML = html;
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.model-select-wrapper')) {
+        document.querySelectorAll('.model-select-dropdown').forEach(d => d.classList.remove('open'));
+      }
+    });
 
     function updateKeyPlaceholder() {
       const prov = document.getElementById('providerSelect').value;
@@ -553,6 +731,7 @@
 
       try {
         await testConnection();
+        await fetchModels();
         sessionStorage.setItem('apiKey', apiKey);
         sessionStorage.setItem('provider', provider);
         document.getElementById('apiKeyModal').classList.add('hidden');
@@ -655,6 +834,19 @@
             </label>
             ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
           </div>`;
+        } else if (field.type === 'model') {
+          html += `<div class="field-group">
+            <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
+            <div class="model-select-wrapper">
+              <input type="text" id="input_${field.name}" class="model-select-input" placeholder="Search models..." readonly onclick="toggleModelDropdown('${field.name}')">
+              <input type="hidden" id="selected_${field.name}" value="">
+              <div id="dropdown_${field.name}" class="model-select-dropdown"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+              <div class="field-hint">${field.hint || 'Click to select'}</div>
+              <div class="model-option-price" id="price_${field.name}" style="font-size: 12px;"></div>
+            </div>
+          </div>`;
         } else if (field.type === 'number') {
           html += `<div class="field-group">
             <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
@@ -672,6 +864,12 @@
 
       html += '</div>';
       container.innerHTML = html;
+
+      for (const field of endpoint.fields) {
+        if (field.type === 'model') {
+          renderModelDropdown(field.name);
+        }
+      }
     }
 
     function buildRequestBody() {
@@ -694,6 +892,9 @@
           }
         } else if (field.type === 'boolean') {
           body[field.name] = el.checked;
+        } else if (field.type === 'model') {
+          const modelVal = document.getElementById(`selected_${field.name}`)?.value;
+          if (modelVal) body[field.name] = modelVal;
         } else if (field.type === 'number') {
           const val = parseFloat(el.value);
           if (!isNaN(val)) body[field.name] = val;
@@ -813,7 +1014,7 @@
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('sidebarProvider').textContent = provider.toUpperCase();
         renderEndpointNav();
-        selectEndpoint(ENDPOINTS[provider][0]);
+        fetchModels().then(() => selectEndpoint(ENDPOINTS[provider][0]));
       }
     }
 
