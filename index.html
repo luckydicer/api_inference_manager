@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Keys Manager</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <title>API Inference Manager</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -19,7 +19,6 @@
       --accent-hover: #4f46e5;
       --success: #22c55e;
       --danger: #ef4444;
-      --warning: #f59e0b;
       --border: #334155;
     }
     body {
@@ -27,87 +26,41 @@
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
-      display: flex;
     }
-    .sidebar {
-      width: 260px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border);
-      height: 100vh;
+    .modal-overlay {
       position: fixed;
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-header h1 {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .sidebar-header span {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .nav-items {
-      padding: 16px 12px;
-      flex: 1;
-    }
-    .nav-item {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all 0.2s;
-      margin-bottom: 4px;
+      justify-content: center;
     }
-    .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-    .nav-item.active { background: var(--accent); color: white; }
-    .nav-item svg { width: 20px; height: 20px; }
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--border);
-    }
-    .api-url-input {
-      width: 100%;
-      padding: 10px 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-size: 12px;
-    }
-    .main-content {
-      flex: 1;
-      margin-left: 260px;
-      padding: 24px;
-      max-height: 100vh;
-      overflow-y: auto;
-    }
-    .card {
+    .api-key-modal {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      z-index: 1001;
     }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
+    .api-key-modal h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-align: center;
     }
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
+    .api-key-modal p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 24px;
     }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
     .form-group { margin-bottom: 16px; }
     label {
       display: block;
@@ -116,9 +69,9 @@
       font-size: 13px;
       font-weight: 500;
     }
-    input, select, textarea {
+    input, select {
       width: 100%;
-      padding: 10px 14px;
+      padding: 12px 14px;
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -127,81 +80,125 @@
       font-family: inherit;
       transition: all 0.2s;
     }
-    input:focus, select:focus, textarea:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     }
-    textarea { resize: vertical; min-height: 120px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; }
     button {
-      padding: 10px 20px;
+      width: 100%;
+      padding: 12px 20px;
       background: var(--accent);
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
     }
     button:hover { background: var(--accent-hover); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.btn-secondary { background: var(--bg-tertiary); }
-    button.btn-secondary:hover { background: var(--border); }
-    button.btn-danger { background: var(--danger); }
-    button.btn-danger:hover { background: #dc2626; }
-    button.btn-small { padding: 6px 12px; font-size: 12px; }
-    button.btn-icon { padding: 8px; border-radius: 6px; }
-    .error { color: var(--danger); font-size: 13px; margin-top: 6px; }
-    .success { color: var(--success); font-size: 13px; margin-top: 6px; }
-    .hidden { display: none !important; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-    .tab {
-      flex: 1;
-      padding: 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      font-weight: 500;
-      color: var(--text-secondary);
-      transition: all 0.2s;
-    }
-    .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-    .tab:hover:not(.active) { background: var(--border); }
-    .key-item {
+    .error { color: var(--danger); font-size: 13px; margin-top: 8px; text-align: center; }
+    .header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title { font-size: 18px; font-weight: 700; }
+    .header-provider { color: var(--accent); font-size: 12px; font-weight: 500; }
+    .main-content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .config-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .config-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chat-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .chat-container { grid-template-columns: 1fr; } }
+    .chat-card, .response-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .chat-messages {
+      height: 400px;
+      overflow-y: auto;
       padding: 16px;
       background: var(--bg-tertiary);
-      border: 1px solid var(--border);
       border-radius: 10px;
-      margin-bottom: 10px;
-      transition: all 0.2s;
+      margin-bottom: 16px;
     }
-    .key-item:hover { border-color: var(--accent); }
-    .key-info { flex: 1; }
-    .key-provider {
-      font-weight: 600;
-      color: var(--accent);
-      text-transform: capitalize;
-      font-size: 12px;
-      margin-bottom: 4px;
+    .chat-message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      max-width: 85%;
+      line-height: 1.5;
     }
-    .key-name { font-weight: 500; color: var(--text-primary); }
-    .key-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    .key-actions { display: flex; gap: 8px; }
+    .chat-message.user {
+      background: var(--accent);
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-message.assistant {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+      margin-bottom: 12px;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+    .btn-row { display: flex; gap: 12px; }
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--border); }
     .output-box {
       background: #0d1117;
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 16px;
-      min-height: 300px;
+      min-height: 400px;
       max-height: 500px;
       overflow-y: auto;
       font-family: 'Monaco', 'Menlo', monospace;
@@ -224,714 +221,246 @@
     }
     .output-status.success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
     .output-status.error { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
-    .chat-message {
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      max-width: 85%;
-    }
-    .chat-message.user {
-      background: var(--accent);
-      color: white;
-      margin-left: auto;
-      border-bottom-right-radius: 4px;
-    }
-    .chat-message.assistant {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-      border-bottom-left-radius: 4px;
-    }
-    .chat-messages {
-      max-height: 400px;
-      overflow-y: auto;
-      padding: 16px;
-      background: var(--bg-tertiary);
-      border-radius: 12px;
-      margin-bottom: 16px;
-    }
-    .param-row {
-      display: grid;
-      grid-template-columns: 140px 1fr 100px;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .param-row label { margin-bottom: 0; color: var(--text-primary); }
-    .param-type {
-      font-size: 11px;
-      padding: 2px 6px;
-      background: var(--bg-tertiary);
-      border-radius: 4px;
-      color: var(--text-muted);
-    }
-    .param-required {
-      font-size: 10px;
-      padding: 2px 6px;
-      background: rgba(239, 68, 68, 0.2);
-      border-radius: 4px;
-      color: var(--danger);
-    }
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-muted);
-    }
-    .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5; }
     .loading {
       display: inline-block;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border: 2px solid rgba(255,255,255,0.3);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .message-time { font-size: 11px; opacity: 0.7; margin-top: 4px; }
-    .config-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    .header-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .header-username {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .header-actions {
-      display: flex;
-      gap: 8px;
-    }
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-    }
-    .modal-content {
-      position: relative;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      width: 100%;
-      max-width: 400px;
-      z-index: 1;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .modal-header h3 {
-      font-size: 18px;
-      font-weight: 600;
-    }
-    .modal-body {
-      margin-bottom: 20px;
-    }
-    .modal-footer {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-    }
-    @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .main-content { margin-left: 0; }
-      .config-row { grid-template-columns: 1fr; }
-    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <h1>API Keys Manager</h1>
-      <span id="version">v1.0.0</span>
-    </div>
-    <nav class="nav-items">
-      <div class="nav-item active" data-tab="chat" onclick="switchTab('chat')">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-        <span>Chat</span>
+  <div id="apiKeyModal" class="modal-overlay">
+    <div class="api-key-modal">
+      <h2>API Inference Manager</h2>
+      <p>Enter your API key to get started</p>
+      <div class="form-group">
+        <label>Provider</label>
+        <select id="providerSelect">
+          <option value="openrouter">OpenRouter</option>
+          <option value="chutes">Chutes</option>
+        </select>
       </div>
-      <div class="nav-item" data-tab="request" onclick="switchTab('request')">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-        <span>API Request</span>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-or-..." onkeydown="if(event.key==='Enter')submitApiKey()">
       </div>
-      <div class="nav-item" data-tab="keys" onclick="switchTab('keys')">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-        <span>API Keys</span>
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      <input type="text" class="api-url-input" id="apiUrl" value="https://clumsily-implant-threaten.ngrok-free.dev" placeholder="Backend API URL">
+      <button id="submitBtn" onclick="submitApiKey()">Continue</button>
+      <div id="modalError" class="error hidden"></div>
     </div>
   </div>
 
+  <div id="mainApp" class="hidden">
+    <div class="header-bar">
+      <div>
+        <div class="header-title">API Inference Manager</div>
+        <div class="header-provider" id="headerProvider"></div>
+      </div>
+      <button class="btn-secondary" onclick="logout()" style="width: auto; padding: 8px 16px;">Change API Key</button>
+    </div>
+
     <div class="main-content">
-      <div id="authSection">
-        <div class="card" style="max-width: 400px; margin: 60px auto;">
-          <h2 style="text-align: center; margin-bottom: 24px;">Welcome</h2>
-          <div class="tabs">
-            <div class="tab active" data-tab="login" onclick="switchAuthTab('login')">Login</div>
-            <div class="tab" data-tab="register" onclick="switchAuthTab('register')">Register</div>
+      <div class="config-card">
+        <div class="card-title">Configuration</div>
+        <div class="config-row">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="appProviderSelect" onchange="onProviderChange()">
+              <option value="openrouter">OpenRouter</option>
+              <option value="chutes">Chutes</option>
+            </select>
           </div>
-          <div id="loginForm">
-            <div class="form-group">
-              <label>Username</label>
-              <input type="text" id="loginUsername" placeholder="Enter username">
-            </div>
-            <div class="form-group">
-              <label>Password</label>
-              <input type="password" id="loginPassword" placeholder="Enter password">
-            </div>
-            <button onclick="login()" style="width: 100%;">Login</button>
-            <div id="loginError" class="error"></div>
+          <div class="form-group">
+            <label>Model</label>
+            <select id="modelSelect">
+              <option value="">Select model...</option>
+            </select>
           </div>
-          <div id="registerForm" class="hidden">
-            <div class="form-group">
-              <label>Username</label>
-              <input type="text" id="registerUsername" placeholder="Choose username">
-            </div>
-            <div class="form-group">
-              <label>Password</label>
-              <input type="password" id="registerPassword" placeholder="Choose password (min 6 chars)">
-            </div>
-            <button onclick="register()" style="width: 100%;">Register</button>
-            <div id="registerError" class="error"></div>
+          <div class="form-group">
+            <label>Temperature</label>
+            <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Max Tokens</label>
+            <input type="number" id="maxTokens" value="2048" min="1" max="32000">
           </div>
         </div>
       </div>
 
-      <div id="mainSection" class="hidden">
-        <div class="header-bar">
-          <div class="header-user">
-            <span class="header-username" id="headerUsername">User</span>
+      <div class="chat-container">
+        <div class="chat-card">
+          <div class="output-header">
+            <div class="card-title">Chat</div>
           </div>
-          <div class="header-actions">
-            <button class="btn-small btn-secondary" onclick="showProfile()">Profile</button>
-            <button class="btn-small btn-danger" onclick="logout()">Logout</button>
-          </div>
-        </div>
-
-        <div id="chatTab">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Configuration</h3>
-            </div>
-            <div class="config-row">
-              <div class="form-group">
-                <label>Provider</label>
-                <select id="providerSelect" onchange="onProviderChange()">
-                  <option value="">Select provider...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>API Key</label>
-                <select id="keySelect">
-                  <option value="">Select key...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Model</label>
-                <select id="modelSelect">
-                  <option value="">Select model...</option>
-                </select>
-              </div>
-            </div>
-            <div class="config-row">
-              <div class="form-group">
-                <label>Temperature</label>
-                <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
-              </div>
-              <div class="form-group">
-                <label>Max Tokens</label>
-                <input type="number" id="maxTokens" value="2048" min="1" max="32000">
-              </div>
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="card">
-              <h3 class="card-title" style="margin-bottom: 16px;">Messages</h3>
-              <div id="chatMessages" class="chat-messages"></div>
-              <div class="form-group">
-                <textarea id="promptInput" placeholder="Enter your message..."></textarea>
-              </div>
-              <div style="display: flex; gap: 12px;">
-                <button id="sendBtn" onclick="sendMessage()">Send Message</button>
-                <button class="btn-secondary" onclick="clearChat()">Clear</button>
-              </div>
-            </div>
-            <div class="card">
-              <div class="output-header">
-                <h3 class="card-title">Response</h3>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <span id="outputStatus" class="output-status">Ready</span>
-                  <button class="btn-icon btn-secondary" onclick="copyOutput()" title="Copy">📋</button>
-                </div>
-              </div>
-              <div id="outputBox" class="output-box"><pre style="color: var(--text-muted);">Response will appear here...</pre></div>
-            </div>
+          <div id="chatMessages" class="chat-messages"></div>
+          <textarea id="promptInput" placeholder="Enter your message..." onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+          <div class="btn-row">
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+            <button class="btn-secondary" onclick="clearChat()">Clear</button>
           </div>
         </div>
 
-        <div id="requestTab" class="hidden">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">API Request Builder</h3>
-            </div>
-            <div class="config-row">
-              <div class="form-group">
-                <label>Provider</label>
-                <select id="reqProviderSelect" onchange="onReqProviderChange()">
-                  <option value="">Select provider...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>API Key</label>
-                <select id="reqKeySelect">
-                  <option value="">Select key...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Endpoint</label>
-                <select id="endpointSelect" onchange="onEndpointChange()">
-                  <option value="">Select endpoint...</option>
-                </select>
-              </div>
-            </div>
-            <div id="paramsContainer"></div>
-            <button id="reqSendBtn" onclick="sendRequest()">Send Request</button>
+        <div class="response-card">
+          <div class="output-header">
+            <div class="card-title">Response</div>
+            <span id="outputStatus" class="output-status">Ready</span>
           </div>
-          <div class="card">
-            <div class="output-header">
-              <h3 class="card-title">Response</h3>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="reqOutputStatus" class="output-status">Ready</span>
-                <button class="btn-icon btn-secondary" onclick="copyOutput()">📋</button>
-              </div>
-            </div>
-            <div id="reqOutputBox" class="output-box"><pre style="color: var(--text-muted);">Response will appear here...</pre></div>
-          </div>
-        </div>
-
-        <div id="keysTab" class="hidden">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Add New API Key</h3>
-            </div>
-            <div class="config-row">
-              <div class="form-group">
-                <label>Provider</label>
-                <select id="newKeyProvider">
-                  <option value="">Select provider...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Key Name</label>
-                <input type="text" id="newKeyName" placeholder="e.g., Production Key">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>API Key</label>
-              <input type="password" id="newKeyValue" placeholder="Enter your API key">
-            </div>
-            <button onclick="addKey()">Add Key</button>
-            <div id="addKeyError" class="error"></div>
-            <div id="addKeySuccess" class="success"></div>
-          </div>
-          <div class="card">
-            <h3 class="card-title" style="margin-bottom: 20px;">Your API Keys</h3>
-            <div id="keysList"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="profileModal" class="modal hidden">
-        <div class="modal-overlay" onclick="closeProfile()"></div>
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Profile Settings</h3>
-            <button class="btn-icon btn-secondary" onclick="closeProfile()">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>Username</label>
-              <input type="text" id="profileUsername" disabled>
-            </div>
-            <div class="form-group">
-              <label>Current Password</label>
-              <input type="password" id="profileCurrentPassword" placeholder="Enter current password">
-            </div>
-            <div class="form-group">
-              <label>New Password</label>
-              <input type="password" id="profileNewPassword" placeholder="Enter new password (min 6 chars)">
-            </div>
-            <div class="form-group">
-              <label>Confirm New Password</label>
-              <input type="password" id="profileConfirmPassword" placeholder="Confirm new password">
-            </div>
-            <div id="profileError" class="error"></div>
-            <div id="profileSuccess" class="success"></div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeProfile()">Cancel</button>
-            <button onclick="updateProfile()">Update Password</button>
-          </div>
+          <div id="outputBox" class="output-box"><pre style="color: var(--text-muted);">Response will appear here...</pre></div>
         </div>
       </div>
     </div>
+  </div>
 
   <script>
-    let token = localStorage.getItem('token');
-    let username = localStorage.getItem('username');
-    let providers = [];
-    let userKeys = {};
-    let currentModels = [];
+    const API_URLS = {
+      openrouter: 'https://openrouter.ai/api/v1',
+      chutes: 'https://chutes.ai/api/v1'
+    };
+
+    let apiKey = '';
+    let provider = '';
+    let models = [];
     let chatHistory = [];
 
-    function switchTab(tab) {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
-      document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
-      document.getElementById('requestTab').classList.toggle('hidden', tab !== 'request');
-      document.getElementById('keysTab').classList.toggle('hidden', tab !== 'keys');
-      if (tab === 'keys') {
-        loadProviders();
-        loadKeys();
-      }
-    }
-
-    function switchAuthTab(tab) {
-      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tabs .tab[data-tab="${tab}"]`).classList.add('active');
-      document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
-      document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
-    }
-
-    async function api(endpoint, options = {}) {
-      const res = await fetch(`${getApiUrl()}${endpoint}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-          ...options.headers
-        }
-      });
-      if (res.status === 401 || res.status === 403) {
-        logout();
-        throw new Error('Session expired');
-      }
-      return res.json();
-    }
-
-    function getApiUrl() {
-      return document.getElementById('apiUrl').value.replace(/\/$/, '');
-    }
-
-    function showAuth() {
-      document.getElementById('authSection').classList.remove('hidden');
-      document.getElementById('mainSection').classList.add('hidden');
-    }
-
-    function showMain() {
-      document.getElementById('authSection').classList.add('hidden');
-      document.getElementById('mainSection').classList.remove('hidden');
-      document.getElementById('headerUsername').textContent = username || 'User';
-      loadProviders();
-      loadKeys();
-    }
-
-    function showProfile() {
-      document.getElementById('profileUsername').value = username || '';
-      document.getElementById('profileCurrentPassword').value = '';
-      document.getElementById('profileNewPassword').value = '';
-      document.getElementById('profileConfirmPassword').value = '';
-      document.getElementById('profileError').textContent = '';
-      document.getElementById('profileSuccess').textContent = '';
-      document.getElementById('profileModal').classList.remove('hidden');
-    }
-
-    function closeProfile() {
-      document.getElementById('profileModal').classList.add('hidden');
-    }
-
-    async function updateProfile() {
-      const currentPassword = document.getElementById('profileCurrentPassword').value;
-      const newPassword = document.getElementById('profileNewPassword').value;
-      const confirmPassword = document.getElementById('profileConfirmPassword').value;
-      const errorEl = document.getElementById('profileError');
-      const successEl = document.getElementById('profileSuccess');
-      errorEl.textContent = '';
-      successEl.textContent = '';
-
-      if (!currentPassword || !newPassword) {
-        errorEl.textContent = 'Current and new password are required';
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        errorEl.textContent = 'New password must be at least 6 characters';
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        errorEl.textContent = 'New passwords do not match';
-        return;
-      }
-
-      try {
-        const data = await api('/auth/update-password', {
-          method: 'POST',
-          body: JSON.stringify({ currentPassword, newPassword })
-        });
-
-        if (data.error) {
-          errorEl.textContent = data.error;
-          return;
-        }
-
-        successEl.textContent = 'Password updated successfully';
-        setTimeout(closeProfile, 1500);
-      } catch (err) {
-        errorEl.textContent = 'Failed to update password';
-      }
-    }
-
-    async function login() {
-      const usernameVal = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
-      const errorEl = document.getElementById('loginError');
-      errorEl.textContent = '';
-      try {
-        const data = await api('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({ username: usernameVal, password })
-        });
-        if (data.error) { errorEl.textContent = data.error; return; }
-        token = data.token;
-        username = data.user.username;
-        localStorage.setItem('token', token);
-        localStorage.setItem('username', username);
-        showMain();
-      } catch (err) { errorEl.textContent = 'Connection error.'; }
-    }
-
-    async function register() {
-      const usernameVal = document.getElementById('registerUsername').value;
-      const password = document.getElementById('registerPassword').value;
-      const errorEl = document.getElementById('registerError');
-      errorEl.textContent = '';
-      try {
-        const data = await api('/auth/register', {
-          method: 'POST',
-          body: JSON.stringify({ username: usernameVal, password })
-        });
-        if (data.error) { errorEl.textContent = data.error; return; }
-        token = data.token;
-        username = data.user.username;
-        localStorage.setItem('token', token);
-        localStorage.setItem('username', username);
-        showMain();
-      } catch (err) { errorEl.textContent = 'Connection error.'; }
-    }
-
     function logout() {
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      token = null;
-      username = null;
+      sessionStorage.removeItem('apiKey');
+      sessionStorage.removeItem('provider');
+      sessionStorage.removeItem('chatHistory');
       chatHistory = [];
-      showAuth();
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('apiKeyModal').classList.remove('hidden');
+      document.getElementById('apiKeyInput').value = '';
+      document.getElementById('modalError').classList.add('hidden');
     }
 
-    async function loadProviders() {
-      const defaultProviders = [
-        { id: 'openrouter', name: 'OpenRouter', endpoints: [{ id: 'chat', name: 'Chat Completions', method: 'POST', params: [] }, { id: 'models', name: 'List Models', method: 'GET', params: [] }] },
-        { id: 'chutes', name: 'Chutes', endpoints: [{ id: 'chat', name: 'Chat Completions', method: 'POST', params: [] }, { id: 'models', name: 'List Models', method: 'GET', params: [] }] }
-      ];
+    async function submitApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      const prov = document.getElementById('providerSelect').value;
+      const errorEl = document.getElementById('modalError');
+      const btn = document.getElementById('submitBtn');
+
+      if (!key) {
+        errorEl.textContent = 'Please enter an API key';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      apiKey = key;
+      provider = prov;
+      errorEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span>';
+
       try {
-        const data = await api('/providers');
-        providers = data.providers || defaultProviders;
+        await loadModels();
+        sessionStorage.setItem('apiKey', apiKey);
+        sessionStorage.setItem('provider', provider);
+        document.getElementById('apiKeyModal').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('appProviderSelect').value = provider;
+        document.getElementById('headerProvider').textContent = provider.toUpperCase();
       } catch (err) {
-        console.error('Failed to load providers from API:', err);
-        providers = defaultProviders;
+        errorEl.textContent = 'Failed to load models. Check your API key.';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Continue';
       }
-      const options = providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      const providerSelect = document.getElementById('providerSelect');
-      const reqProviderSelect = document.getElementById('reqProviderSelect');
-      const newKeyProvider = document.getElementById('newKeyProvider');
-      if (providerSelect) providerSelect.innerHTML = '<option value="">Select provider...</option>' + options;
-      if (reqProviderSelect) reqProviderSelect.innerHTML = '<option value="">Select provider...</option>' + options;
-      if (newKeyProvider) newKeyProvider.innerHTML = '<option value="">Select provider...</option>' + options;
     }
 
-    async function loadKeys() {
-      const listEl = document.getElementById('keysList');
-      try {
-        const data = await api('/keys');
-        userKeys = data.keys || {};
-        const allKeys = [];
-        for (const [provider, providerKeys] of Object.entries(keys)) {
-          if (Array.isArray(providerKeys)) {
-            providerKeys.forEach((k, idx) => {
-              allKeys.push({ provider, ...k, idx });
-            });
-          }
-        }
-        if (allKeys.length === 0) {
-          listEl.innerHTML = '<div class="empty-state"><p>No API keys saved yet. Add your first key above.</p></div>';
-          return;
-        }
-        listEl.innerHTML = allKeys.map(k => `
-          <div class="key-item">
-            <div class="key-info">
-              <div class="key-provider">${k.provider}</div>
-              <div class="key-name">${k.name}</div>
-              <div class="key-meta">${k.key} • ${new Date(k.createdAt).toLocaleDateString()}</div>
-            </div>
-            <div class="key-actions">
-              <button class="btn-small btn-danger" onclick="deleteKey('${k.provider}', ${k.idx})">Delete</button>
-            </div>
-          </div>
-        `).join('');
-        updateKeySelects(keys);
-      } catch (err) { listEl.innerHTML = '<div class="error">Failed to load keys</div>'; }
-    }
+    async function loadModels() {
+      const baseUrl = API_URLS[provider];
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
 
-    function updateKeySelects(keys) {
-      const provider = document.getElementById('providerSelect').value;
-      const reqProvider = document.getElementById('reqProviderSelect').value;
-      const keyOptions = keys[provider] || [];
-      const reqKeyOptions = keys[reqProvider] || [];
-      document.getElementById('keySelect').innerHTML = '<option value="">Select key...</option>' +
-        keyOptions.map((k, i) => `<option value="${i}">${k.name}</option>`).join('');
-      document.getElementById('reqKeySelect').innerHTML = '<option value="">Select key...</option>' +
-        reqKeyOptions.map((k, i) => `<option value="${i}">${k.name}</option>`).join('');
-    }
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'Failed to fetch models');
+      }
 
-    async function onProviderChange() {
-      const provider = document.getElementById('providerSelect').value;
+      const data = await response.json();
+      models = data.data || [];
+
       const modelSelect = document.getElementById('modelSelect');
-      modelSelect.innerHTML = '<option value="">Loading models...</option>';
-      if (!provider) {
-        modelSelect.innerHTML = '<option value="">Select model...</option>';
-        return;
-      }
-      const providerKeys = providers.find(p => p.id === provider);
-      if (providerKeys) {
-        modelSelect.innerHTML = '<option value="">Select model...</option>';
-        updateKeySelects(userKeys);
-      }
-      try {
-        const data = await api(`/models?provider=${provider}`);
-        currentModels = data.models || [];
+      if (provider === 'openrouter') {
+        models.sort((a, b) => (b.id.includes('claude') || b.id.includes('gpt') ? -1 : 0));
         modelSelect.innerHTML = '<option value="">Select model...</option>' +
-          currentModels.map(m => `<option value="${m.id}">${m.name || m.id}</option>`).join('');
-      } catch (err) { modelSelect.innerHTML = '<option value="">Failed to load</option>'; }
+          models.map(m => `<option value="${m.id}">${m.name || m.id}</option>`).join('');
+      } else {
+        modelSelect.innerHTML = '<option value="">Select model...</option>' +
+          models.slice(0, 50).map(m => `<option value="${m.id}">${m.name || m.id}</option>`).join('');
+      }
     }
 
-    async function onReqProviderChange() {
-      const provider = document.getElementById('reqProviderSelect').value;
-      const endpointSelect = document.getElementById('endpointSelect');
-      endpointSelect.innerHTML = '<option value="">Loading...</option>';
-      if (!provider) {
-        endpointSelect.innerHTML = '<option value="">Select endpoint...</option>';
-        document.getElementById('paramsContainer').innerHTML = '';
-        return;
-      }
-      const p = providers.find(pr => pr.id === provider);
-      if (p) {
-        endpointSelect.innerHTML = '<option value="">Select endpoint...</option>' +
-          p.endpoints.map(e => `<option value="${e.id}">${e.method} ${e.name}</option>`).join('');
-        updateKeySelects(userKeys);
-      }
-      document.getElementById('paramsContainer').innerHTML = '';
-    }
-
-    function onEndpointChange() {
-      const provider = document.getElementById('reqProviderSelect').value;
-      const endpointId = document.getElementById('endpointSelect').value;
-      const container = document.getElementById('paramsContainer');
-      if (!provider || !endpointId) { container.innerHTML = ''; return; }
-      const p = providers.find(pr => pr.id === provider);
-      const endpoint = p?.endpoints.find(e => e.id === endpointId);
-      if (!endpoint) return;
-      container.innerHTML = '<h4 style="margin: 16px 0 12px; color: var(--text-secondary);">Parameters</h4>' +
-        endpoint.params.map(param => `
-          <div class="param-row">
-            <div>
-              <label>${param.name}</label>
-              <span class="param-type">${param.type}</span>
-              ${param.required ? '<span class="param-required">required</span>' : ''}
-            </div>
-            <input type="${param.type === 'number' ? 'number' : 'text'}"
-                   id="param_${param.name}"
-                   placeholder="${param.default !== undefined ? 'Default: ' + param.default : ''}"
-                   ${param.min !== undefined ? `min="${param.min}"` : ''}
-                   ${param.max !== undefined ? `max="${param.max}"` : ''}
-                   step="${param.type === 'number' ? 'any' : ''}">
-          </div>
-        `).join('');
+    function onProviderChange() {
+      provider = document.getElementById('appProviderSelect').value;
+      document.getElementById('headerProvider').textContent = provider.toUpperCase();
+      sessionStorage.setItem('provider', provider);
+      loadModels();
     }
 
     async function sendMessage() {
-      const provider = document.getElementById('providerSelect').value;
       const model = document.getElementById('modelSelect').value;
       const prompt = document.getElementById('promptInput').value.trim();
       const temperature = parseFloat(document.getElementById('temperature').value);
       const maxTokens = parseInt(document.getElementById('maxTokens').value);
-      const keyIndex = document.getElementById('keySelect').value;
-      if (!provider || !model || !prompt) { alert('Please select provider, model and enter message'); return; }
+
+      if (!model) { alert('Please select a model'); return; }
+      if (!prompt) { alert('Please enter a message'); return; }
+
       const sendBtn = document.getElementById('sendBtn');
       sendBtn.disabled = true;
       sendBtn.innerHTML = '<span class="loading"></span>';
+
       const outputBox = document.getElementById('outputBox');
       const statusEl = document.getElementById('outputStatus');
       statusEl.textContent = 'Loading...';
       statusEl.className = 'output-status';
-      outputBox.innerHTML = '<pre style="color: var(--text-muted);">Loading...</pre>';
+
       chatHistory.push({ role: 'user', content: prompt });
       renderChat();
+
+      document.getElementById('promptInput').value = '';
+
       try {
-        const data = await api('/chat', {
-          method: 'POST',
-          body: JSON.stringify({ provider, model, messages: chatHistory, temperature, max_tokens: maxTokens, keyIndex: keyIndex ? parseInt(keyIndex) : undefined })
-        });
-        if (data.error) {
-          outputBox.innerHTML = `<pre style="color: var(--danger);">${JSON.stringify(data.error, null, 2)}</pre>`;
-          statusEl.textContent = 'Error';
-          statusEl.className = 'output-status error';
-          return;
+        const baseUrl = API_URLS[provider];
+        let body;
+        let endpoint = '/chat/completions';
+
+        if (provider === 'openrouter') {
+          body = { model, messages: chatHistory, temperature, max_tokens: maxTokens };
+        } else {
+          body = { model_id: model, messages: chatHistory, temperature, max_tokens: maxTokens };
         }
+
+        const response = await fetch(`${baseUrl}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://api-inference-manager.com',
+            'X-Title': 'API Inference Manager'
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.message || 'API request failed');
+        }
+
         const content = data.choices?.[0]?.message?.content || '';
         if (content) {
           chatHistory.push({ role: 'assistant', content });
           renderChat();
         }
+
         outputBox.innerHTML = `<pre><code class="language-json">${JSON.stringify(data, null, 2)}</code></pre>`;
         hljs.highlightElement(outputBox.querySelector('code'));
         statusEl.textContent = 'Success';
@@ -942,116 +471,51 @@
         statusEl.className = 'output-status error';
       } finally {
         sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Message';
-        document.getElementById('promptInput').value = '';
+        sendBtn.textContent = 'Send';
+        sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
       }
     }
 
     function renderChat() {
       const container = document.getElementById('chatMessages');
       container.innerHTML = chatHistory.map(m => `
-        <div class="chat-message ${m.role}">
-          <div>${m.content}</div>
-        </div>
+        <div class="chat-message ${m.role}">${m.content}</div>
       `).join('');
       container.scrollTop = container.scrollHeight;
     }
 
     function clearChat() {
       chatHistory = [];
+      sessionStorage.removeItem('chatHistory');
       renderChat();
       document.getElementById('outputBox').innerHTML = '<pre style="color: var(--text-muted);">Response will appear here...</pre>';
       document.getElementById('outputStatus').textContent = 'Ready';
       document.getElementById('outputStatus').className = 'output-status';
     }
 
-    async function sendRequest() {
-      const provider = document.getElementById('reqProviderSelect').value;
-      const endpoint = document.getElementById('endpointSelect').value;
-      const keyIndex = document.getElementById('reqKeySelect').value;
-      if (!provider || !endpoint) { alert('Please select provider and endpoint'); return; }
-      const p = providers.find(pr => pr.id === provider);
-      const ep = p?.endpoints.find(e => e.id === endpoint);
-      if (!ep) return;
-      const params = {};
-      ep.params.forEach(param => {
-        const input = document.getElementById(`param_${param.name}`);
-        if (input && input.value) {
-          let val = input.value;
-          if (param.type === 'number') val = parseFloat(val);
-          params[param.name] = val;
-        }
-      });
-      const sendBtn = document.getElementById('reqSendBtn');
-      sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span class="loading"></span>';
-      const outputBox = document.getElementById('reqOutputBox');
-      const statusEl = document.getElementById('reqOutputStatus');
-      statusEl.textContent = 'Loading...';
-      statusEl.className = 'output-status';
-      outputBox.innerHTML = '<pre style="color: var(--text-muted);">Loading...</pre>';
-      try {
-        const data = await api('/request', {
-          method: 'POST',
-          body: JSON.stringify({ provider, endpoint, params, keyIndex: keyIndex ? parseInt(keyIndex) : undefined })
+    function init() {
+      const savedKey = sessionStorage.getItem('apiKey');
+      const savedProvider = sessionStorage.getItem('provider');
+      const savedHistory = sessionStorage.getItem('chatHistory');
+
+      if (savedKey && savedProvider) {
+        apiKey = savedKey;
+        provider = savedProvider;
+        document.getElementById('apiKeyModal').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('appProviderSelect').value = provider;
+        document.getElementById('headerProvider').textContent = provider.toUpperCase();
+
+        loadModels().then(() => {
+          if (savedHistory) {
+            chatHistory = JSON.parse(savedHistory);
+            renderChat();
+          }
         });
-        if (data.error) {
-          outputBox.innerHTML = `<pre style="color: var(--danger);">${JSON.stringify(data.error, null, 2)}</pre>`;
-          statusEl.textContent = 'Error';
-          statusEl.className = 'output-status error';
-          return;
-        }
-        outputBox.innerHTML = `<pre><code class="language-json">${JSON.stringify(data, null, 2)}</code></pre>`;
-        hljs.highlightElement(outputBox.querySelector('code'));
-        statusEl.textContent = 'Success';
-        statusEl.className = 'output-status success';
-      } catch (err) {
-        outputBox.innerHTML = `<pre style="color: var(--danger);">Error: ${err.message}</pre>`;
-        statusEl.textContent = 'Error';
-        statusEl.className = 'output-status error';
-      } finally {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Request';
       }
     }
 
-    async function addKey() {
-      const provider = document.getElementById('newKeyProvider').value;
-      const name = document.getElementById('newKeyName').value.trim();
-      const apiKey = document.getElementById('newKeyValue').value.trim();
-      const errorEl = document.getElementById('addKeyError');
-      const successEl = document.getElementById('addKeySuccess');
-      errorEl.textContent = '';
-      successEl.textContent = '';
-      if (!provider || !apiKey) { errorEl.textContent = 'Provider and API key required'; return; }
-      try {
-        const data = await api('/keys', {
-          method: 'POST',
-          body: JSON.stringify({ provider, name: name || `Key ${Date.now()}`, apiKey })
-        });
-        if (data.error) { errorEl.textContent = data.error; return; }
-        successEl.textContent = data.message;
-        document.getElementById('newKeyName').value = '';
-        document.getElementById('newKeyValue').value = '';
-        loadKeys();
-      } catch (err) { errorEl.textContent = 'Failed to add key'; }
-    }
-
-    async function deleteKey(provider, idx) {
-      if (!confirm(`Delete this ${provider} key?`)) return;
-      try {
-        await api(`/keys/${provider}/${idx}`, { method: 'DELETE' });
-        loadKeys();
-      } catch (err) { alert('Failed to delete key'); }
-    }
-
-    function copyOutput() {
-      const output = document.querySelector('.output-box pre')?.textContent || '';
-      navigator.clipboard.writeText(output);
-    }
-
-    if (token) showMain();
-    else showAuth();
+    init();
   </script>
 </body>
 </html>
