@@ -988,6 +988,18 @@
     let currentEndpoint = null;
     let models = [];
 
+    function normalizeModel(model) {
+      const id = model?.id || model?.model_id || model?.slug || model?.name || '';
+      const name = model?.name || model?.display_name || id;
+      const pricing = model?.pricing ?? model?.price ?? model?.cost ?? null;
+      return {
+        ...model,
+        id,
+        name,
+        pricing
+      };
+    }
+
     function getModelPriceValue(model) {
       if (provider === 'openrouter') {
         const pricing = model.pricing || {};
@@ -1020,7 +1032,8 @@
       });
       if (!response.ok) throw new Error('Failed to fetch models');
       const data = await response.json();
-      models = data.data || [];
+      const rawModels = Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
+      models = rawModels.map(normalizeModel).filter(m => m.id);
       models.sort((a, b) => getModelPriceValue(a) - getModelPriceValue(b));
     }
 
@@ -1044,7 +1057,7 @@
     }
 
     function selectModel(fieldName, modelId) {
-      const model = models.find(m => m.id === modelId);
+      const model = models.find(m => m.id === modelId || m.model_id === modelId);
       if (!model) return;
       document.getElementById(`selected_${fieldName}`).value = modelId;
       document.getElementById(`input_${fieldName}`).value = model.name || modelId;
