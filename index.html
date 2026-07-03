@@ -380,6 +380,111 @@
       flex: 1;
       min-height: 0;
     }
+
+    .advanced-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      width: 100%;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+    .advanced-toggle:hover { background: var(--border); color: var(--text-primary); }
+    .advanced-toggle .arrow {
+      transition: transform 0.2s;
+      font-size: 10px;
+    }
+    .advanced-toggle.open .arrow { transform: rotate(90deg); }
+    .advanced-toggle.open { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .advanced-fields {
+      display: none;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+    }
+    .advanced-fields.open { display: block; }
+
+    .messages-field textarea {
+      min-height: 200px;
+    }
+    .main-content {
+      flex: 1;
+      padding: 32px 40px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-width: 0;
+    }
+    .sidebar {
+      width: 300px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .request-response-container {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (max-width: 1200px) {
+      .request-response-container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 900px) {
+      .request-response-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .request-card, .response-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 500px;
+    }
+    .response-card {
+      min-height: 400px;
+    }
+    #responseBox {
+      flex: 1;
+      min-height: 300px;
+    }
+    .output-box {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      flex: 1;
+    }
+    .endpoint-header {
+      padding-bottom: 8px;
+    }
+    .endpoint-title {
+      font-size: 24px;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -833,6 +938,8 @@
       clearResponse();
     }
 
+    const ADVANCED_FIELDS = ['temperature', 'max_tokens', 'top_p', 'frequency_penalty', 'presence_penalty', 'stop', 'stream'];
+
     function renderRequestFields(endpoint) {
       const container = document.getElementById('requestFields');
 
@@ -845,23 +952,20 @@
         return;
       }
 
-      let html = '<div class="fields-grid">';
+      const basicFields = endpoint.fields.filter(f => !ADVANCED_FIELDS.includes(f.name));
+      const advancedFields = endpoint.fields.filter(f => ADVANCED_FIELDS.includes(f.name));
 
-      for (const field of endpoint.fields) {
+      let html = '';
+
+      html += '<div class="fields-grid">';
+
+      for (const field of basicFields) {
         const value = field.default !== undefined ? (field.default === false ? 'false' : field.default) : '';
 
         if (field.type === 'json') {
-          html += `<div class="field-group" style="grid-column: 1 / -1;">
+          html += `<div class="field-group messages-field" style="grid-column: 1 / -1;">
             <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
             <textarea id="field_${field.name}" placeholder='[{"role": "user", "content": "Hello"}] or just type your message'>${value}</textarea>
-            ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
-          </div>`;
-        } else if (field.type === 'boolean') {
-          html += `<div class="field-group">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" id="field_${field.name}" ${value === 'false' ? '' : 'checked'}>
-              ${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}
-            </label>
             ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
           </div>`;
         } else if (field.type === 'model') {
@@ -877,22 +981,54 @@
               <div class="model-option-price" id="price_${field.name}" style="font-size: 12px;"></div>
             </div>
           </div>`;
-        } else if (field.type === 'number') {
-          html += `<div class="field-group">
-            <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
-            <input type="number" id="field_${field.name}" value="${value}" step="any">
-            ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
-          </div>`;
         } else {
           html += `<div class="field-group">
             <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
             <input type="text" id="field_${field.name}" placeholder="${field.hint || ''}" value="${value}">
-            ${field.hint && !field.hint.includes('e.g.') ? `<div class="field-hint">${field.hint}</div>` : ''}
+            ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
           </div>`;
         }
       }
 
       html += '</div>';
+
+      if (advancedFields.length > 0) {
+        html += `<button class="advanced-toggle" onclick="toggleAdvanced()">
+          <span class="arrow">▶</span> Advanced Options
+        </button>`;
+
+        html += '<div class="advanced-fields" id="advancedFields">';
+        html += '<div class="fields-grid">';
+
+        for (const field of advancedFields) {
+          const value = field.default !== undefined ? (field.default === false ? 'false' : field.default) : '';
+
+          if (field.type === 'boolean') {
+            html += `<div class="field-group">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="field_${field.name}" ${value === 'false' ? '' : 'checked'}>
+                ${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}
+              </label>
+              ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
+            </div>`;
+          } else if (field.type === 'number') {
+            html += `<div class="field-group">
+              <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
+              <input type="number" id="field_${field.name}" value="${value}" step="any">
+              ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
+            </div>`;
+          } else {
+            html += `<div class="field-group">
+              <label>${field.name} ${field.required ? '<span class="field-required">required</span>' : ''}</label>
+              <input type="text" id="field_${field.name}" placeholder="${field.hint || ''}" value="${value}">
+              ${field.hint ? `<div class="field-hint">${field.hint}</div>` : ''}
+            </div>`;
+          }
+        }
+
+        html += '</div></div>';
+      }
+
       container.innerHTML = html;
 
       for (const field of endpoint.fields) {
@@ -900,6 +1036,13 @@
           renderModelDropdown(field.name);
         }
       }
+    }
+
+    function toggleAdvanced() {
+      const toggle = document.querySelector('.advanced-toggle');
+      const advanced = document.getElementById('advancedFields');
+      toggle.classList.toggle('open');
+      advanced.classList.toggle('open');
     }
 
     function buildRequestBody() {
