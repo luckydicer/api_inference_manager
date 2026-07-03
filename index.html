@@ -705,22 +705,15 @@
     let currentEndpoint = null;
     let models = [];
 
-    async function fetchModels() {
-      const baseUrl = API_URLS[provider];
-      const response = await fetch(`${baseUrl}/models`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
-      });
-      if (!response.ok) throw new Error('Failed to fetch models');
-      const data = await response.json();
-      models = data.data || [];
+    function getModelPriceValue(model) {
       if (provider === 'openrouter') {
-        models.sort((a, b) => {
-          const aTop = a.id.includes('claude') || a.id.includes('gpt') || a.id.includes('sonnet');
-          const bTop = b.id.includes('claude') || b.id.includes('gpt') || b.id.includes('sonnet');
-          if (aTop && !bTop) return -1;
-          if (!aTop && bTop) return 1;
-          return 0;
-        });
+        const pricing = model.pricing || {};
+        const prompt = pricing.prompt || 0;
+        const completion = pricing.completion || 0;
+        if (prompt === 0 && completion === 0) return 0;
+        return (prompt + completion) / 2;
+      } else {
+        return model.pricing || 999999;
       }
     }
 
@@ -737,6 +730,17 @@
       }
     }
 
+    async function fetchModels() {
+      const baseUrl = API_URLS[provider];
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (!response.ok) throw new Error('Failed to fetch models');
+      const data = await response.json();
+      models = data.data || [];
+      models.sort((a, b) => getModelPriceValue(a) - getModelPriceValue(b));
+    }
+
     function toggleModelDropdown(fieldName) {
       const dropdown = document.getElementById(`dropdown_${fieldName}`);
       document.querySelectorAll('.model-select-dropdown').forEach(d => {
@@ -749,7 +753,10 @@
       }
     }
 
+    let modelSearchQueries = {};
+
     function filterModels(fieldName, query) {
+      modelSearchQueries[fieldName] = query;
       renderModelDropdown(fieldName, query);
     }
 
@@ -772,46 +779,26 @@
       });
 
       const selectedId = document.getElementById(`selected_${fieldName}`)?.value || '';
+      const currentFilter = filter || modelSearchQueries[fieldName] || '';
 
       let html = `<div class="model-select-search">
-        <input type="text" placeholder="Search models..." onkeyup="filterModels('${fieldName}', this.value)" autofocus>
+        <input type="text" id="search_${fieldName}" placeholder="Search models..." value="${currentFilter}" oninput="filterModels('${fieldName}', this.value)" autofocus>
       </div>`;
 
       if (filtered.length === 0) {
         html += `<div class="model-option" style="color: var(--text-muted); cursor: default;">No models found</div>`;
       } else {
-        const top = filtered.filter(m => m.id.includes('claude') || m.id.includes('gpt') || m.id.includes('sonnet'));
-        const rest = filtered.filter(m => !m.id.includes('claude') && !m.id.includes('gpt') && !m.id.includes('sonnet'));
-
-        if (top.length > 0) {
-          html += `<div class="model-option-group">Popular</div>`;
-          top.slice(0, 10).forEach(m => {
-            const price = getModelPrice(m);
-            const isSelected = m.id === selectedId;
-            html += `<div class="model-option ${isSelected ? 'selected' : ''}" onclick="selectModel('${fieldName}', '${m.id.replace(/'/g, "\\'")}')">
-              <div>
-                <div class="model-option-name">${m.name || m.id}</div>
-                <div class="model-option-id">${m.id}</div>
-              </div>
-              <div class="model-option-price">${price}</div>
-            </div>`;
-          });
-        }
-
-        if (rest.length > 0) {
-          html += `<div class="model-option-group">Other Models</div>`;
-          rest.slice(0, 90).forEach(m => {
-            const price = getModelPrice(m);
-            const isSelected = m.id === selectedId;
-            html += `<div class="model-option ${isSelected ? 'selected' : ''}" onclick="selectModel('${fieldName}', '${m.id.replace(/'/g, "\\'")}')">
-              <div>
-                <div class="model-option-name">${m.name || m.id}</div>
-                <div class="model-option-id">${m.id}</div>
-              </div>
-              <div class="model-option-price">${price}</div>
-            </div>`;
-          });
-        }
+        filtered.slice(0, 100).forEach(m => {
+          const price = getModelPrice(m);
+          const isSelected = m.id === selectedId;
+          html += `<div class="model-option ${isSelected ? 'selected' : ''}" onclick="selectModel('${fieldName}', '${m.id.replace(/'/g, "\\'")}')">
+            <div>
+              <div class="model-option-name">${m.name || m.id}</div>
+              <div class="model-option-id">${m.id}</div>
+            </div>
+            <div class="model-option-price">${price}</div>
+          </div>`;
+        });
 
         if (filtered.length > 100) {
           html += `<div class="model-option" style="color: var(--text-muted);">Showing 100 of ${filtered.length}</div>`;
@@ -1052,6 +1039,12 @@
 
       const body = {};
       for (const field of currentEndpoint.fields) {
+        if (field.type === 'model') {
+          const modelVal = document.getElementById(`selected_${field.name}`)?.value;
+          if (modelVal) body[field.name] = modelVal;
+          continue;
+        }
+
         const el = document.getElementById(`field_${field.name}`);
         if (!el) continue;
 
@@ -1066,9 +1059,6 @@
           }
         } else if (field.type === 'boolean') {
           body[field.name] = el.checked;
-        } else if (field.type === 'model') {
-          const modelVal = document.getElementById(`selected_${field.name}`)?.value;
-          if (modelVal) body[field.name] = modelVal;
         } else if (field.type === 'number') {
           const val = parseFloat(el.value);
           if (!isNaN(val)) body[field.name] = val;
